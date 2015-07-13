@@ -75,6 +75,10 @@ class syntax_plugin_data_table extends DokuWiki_Syntax_Plugin {
         $lines = explode("\n", $match);
         array_pop($lines);
         $class = array_shift($lines);
+        if(preg_match('/^----+ *datacount+/', $class) === 1)
+          $countOnly = true;
+        else
+          $countOnly = false;
         $class = preg_replace('/^----+ *data[a-z]+/', '', $class);
         $class = trim($class, '- ');
 
@@ -87,7 +91,8 @@ class syntax_plugin_data_table extends DokuWiki_Syntax_Plugin {
             'sepbyheaders'  => false,
             'headers'       => array(),
             'widths'        => array(),
-            'filter'        => array()
+            'filter'        => array(),
+            'countonly'     => $countOnly
         );
 
         // parse info
@@ -281,6 +286,17 @@ class syntax_plugin_data_table extends DokuWiki_Syntax_Plugin {
         return true;
     }
 
+    protected function countOnly($cnt, Doku_Renderer $R)
+    {
+        switch($R->getFormat())
+        {
+            case 'xhtml':
+            case 'odt':
+                $R->doc .= $cnt;
+                break;
+        }
+    }
+
     /**
      * Handles the actual output creation.
      *
@@ -314,6 +330,12 @@ class syntax_plugin_data_table extends DokuWiki_Syntax_Plugin {
 
         $rows = $sqlite->res2arr($res);
         $cnt = count($rows);
+
+        if($data['countonly'])
+        {
+            $this->countOnly($cnt, $R);
+            return true;
+        }
 
         if($cnt === 0) {
             $this->nullList($data, $clist, $R);

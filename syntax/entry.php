@@ -128,6 +128,10 @@ class syntax_plugin_data_entry extends DokuWiki_Syntax_Plugin {
 
         global $ID;
         switch($format) {
+            case 'odt':
+                /** @var $renderer Doku_Renderer_odt */
+                $this->_showDataODT($data, $renderer);
+                return true;
             case 'xhtml':
                 /** @var $renderer Doku_Renderer_xhtml */
                 $this->_showData($data, $renderer);
@@ -143,6 +147,50 @@ class syntax_plugin_data_entry extends DokuWiki_Syntax_Plugin {
             default:
                 return false;
         }
+    }
+
+    function _showDataODT($data, $R) {
+        global $ID;
+        $ret = '';
+
+        $R->p_close();
+        $R->table_open(2);
+        foreach($data['data'] as $key => $val) {
+            if($val == '' || !count($val)) continue;
+            $R->tablerow_open();
+            $type = $data['cols'][$key]['type'];
+            if(is_array($type)) {
+                $type = $type['type'];
+            }
+            if($type === 'hidden') continue;
+
+            $class_name = hsc(sectionID($key, $class_names));
+            $R->tableheader_open();
+            $R->doc .= hsc($data['cols'][$key]['title']);
+            $R->tableheader_close();
+            $R->tablecell_open();
+            if(is_array($val)) {
+                $cnt = count($val);
+                for($i = 0; $i < $cnt; $i++) {
+                    switch($type) {
+                        case 'wiki':
+                            $val[$i] = $ID . '|' . $val[$i];
+                            break;
+                    }
+                    $R->doc .= $this->dthlp->_formatData($data['cols'][$key], $val[$i], $R);
+                }
+            } else {
+                switch($type) {
+                    case 'wiki':
+                        $val = $ID . '|' . $val;
+                        break;
+                }
+                $R->doc .= $this->dthlp->_formatData($data['cols'][$key], $val, $R);
+            }
+            $R->tablecell_close();
+            $R->tablerow_close();
+        }
+        $R->table_close();
     }
 
     /**
